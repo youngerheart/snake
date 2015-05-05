@@ -1,0 +1,293 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>snake</title>
+    <style type="text/css">
+      .item {
+        width: 20px;
+        height: 20px;
+        float: left;
+        border: #fff solid;
+        border-width: 1px 1px 0 0;
+      }
+      #snake_w:before {
+        content: 'snake position:x';
+      }
+      #snake_h:before {
+        content: ',y';
+      }
+      #food_w:before {
+        content: ',food position:x';
+      }
+      #food_h:before {
+        content: ',y';
+      }
+      #interval:before {
+        content: ',interval:';
+      }
+      #direct:before {
+        content: ',direction:';
+      }
+    </style>
+  </head>
+  <body onkeydown="keydown()">
+    <div id="text"></div>
+    <div id="box"></div>
+  </body>
+  <script type="text/javascript">
+
+  // 蛇对象
+  var Snake = function() {
+
+    this.rows = 30; // 横行
+    this.cols = 20; // 竖行
+    this.time = 1000; // 间隔
+    this.x = null; // 蛇x
+    this.y = null; // 蛇y
+    this.arr = []; // 蛇数组
+    this.leng = 0; // 蛇长度
+    this.fx = null; // 食物x
+    this.fy = null; // 食物y
+    this.d = null; // 蛇当前方向
+    this.s = true; // 蛇是否可以开始移动
+    this.ray = null; // 蛇的定时器对象
+
+    this.el = function(id) {return document.getElementById(id)};
+    this.box = this.el('box'); // 地图容器
+    this.getRandom = function(num) {
+      return Math.floor(Math.random() * num);
+    };
+
+    // music
+    this.bgm = new Audio('bgm.mp3');
+    this.eat = new Audio('eat.mp3');
+    this.fail = new Audio('fail.mp3');
+    this.faster = function() {
+      if(this.time>500){
+        this.time -= 10
+      } else if(this.time>200){
+        this.time -= 3
+      } else if(this.time>100){
+        this.time -= 1
+      } else{
+        this.time = 100;
+      }
+      this.el('interval').innerHTML = this.time;
+    }
+
+
+    this.start = function(p) {
+      if(!this.arr.length){
+        this.bgm.loop = true;
+        this.bgm.play();
+        this.arr[0] = [this.y,this.x];
+      }
+
+      this.el('num'+this.fy+'num'+this.fx).style.background='green';
+
+      this.el('num' + this.arr[this.leng][0] + 'num' + this.arr[this.leng][1]).style.background= 'gray';
+      this.el('num' + this.arr[0][0] + 'num' + this.arr[0][1]).innerHTML = '';
+      var o;
+
+      for(o = this.leng;o > 0; o --) {
+        this.arr[o] = this.arr[o -1].slice();
+      }
+      if(p == 1) {
+        this.x ++;
+        this.arr[0][1]=parseInt(this.arr[0][1])+1;
+      }
+      else if(p == -1) {
+        this.x --;
+        this.arr[0][1]=parseInt(this.arr[0][1])-1;
+      }
+      else if(p == 2) {
+        this.y ++;
+        this.arr[0][0]=parseInt(this.arr[0][0])+1;
+      }
+      else if(p == -2) {
+        this.y --;
+        this.arr[0][0]=parseInt(this.arr[0][0])-1;
+      }
+
+      this.el("snake_h").innerHTML = this.y;
+      this.el("snake_w").innerHTML = this.x;
+
+      var that = this
+
+      var over = function() {
+        that.bgm.pause();
+        that.fail.play();
+        alert('game over');
+        location.href='index.html';
+      };
+      if(this.y < 0 || this.y > this.rows - 1 || this.x < 0 || this.x > this.cols - 1) {
+        over();
+      }
+
+      for(var jar in this.arr){
+        if(jar>0){
+          if (this.arr[jar][0] === this.arr[0][0] && this.arr[jar][1] === this.arr[0][1] && !(this.y === this.fy&& this.x === this.fx)) {
+            over();
+          }
+        }
+        this.el('num' + this.arr[jar][0]+'num'+this.arr[jar][1]).style.background = 'red';
+      }
+
+      //eat
+      if(this.y == this.fy && this.x == this.fx){
+        this.eat.play();
+        this.leng++;
+        this.arr[this.leng]=[this.y,this.x];
+        this.fy = this.getRandom(this.rows);
+        this.fx = this.getRandom(this.cols);
+        this.el("food_h").innerHTML = this.fy;
+        this.el("food_w").innerHTML = this.fx;
+      }
+    }
+
+  };
+
+  // 初始化地图和蛇
+  Snake.prototype.init = function() {
+    var map = [];
+    var i,j;
+    for(i = 0; i < this.rows; i ++){
+      map[i] = [];
+      for(j = 0; j < this.cols;j ++){
+        map[i][j] = 0;
+      }
+    }
+    this.y = this.getRandom(this.rows);
+    this.x = this.getRandom(this.cols);
+    map[this.y][this.x] = 1;
+    this.fy = this.getRandom(this.rows);
+    this.fx = this.getRandom(this.cols);
+    map[this.fy][this.fx] = 2;
+    var string = '';
+    var bg = '';
+    for(i = 0; i < this.rows; i ++){
+      for(j = 0; j < this.cols; j ++){
+        if(map[i][j] === 1){
+          bg = 'red';
+        }
+        else if(map[i][j] === 2){
+          bg = 'green';
+        }
+        else{
+          bg = 'gray';
+        }
+
+
+        string += '<div id="num' + i + 'num' + j + '" class="item" style="background-color:' + bg + ';"></div>';
+      }
+      string += '<div style="clear:both"></div>'
+    }
+    this.el('box').innerHTML = string;
+    this.el('text').innerHTML = '<span id="snake_w">' + this.x + '</span><span id="snake_h">' + this.y + '</span><span id="food_w">' + this.fx + '</span><span id="food_h">' + this.fy + '</span><span id="direct"></span><span id="interval">' + this.time + '</span>';
+  };
+
+  // 敲击事件
+  Snake.prototype.keyevent = function (){
+    var self = this;
+    stop = this.d;
+    realtime = this.time;
+    if(realtime === 1000 && this.s){
+      setInterval(function() {
+        self.faster();
+      },1000);
+      this.s = false;
+    }
+    clearInterval(this.ray);
+    var keycode = event.which || event.keyCode;
+    switch(keycode){
+      case 1:
+      case 38:
+      case 269: //up
+        if(stop != 2){
+          this.ray = setInterval(function() {
+            self.start(-2);
+          }, realtime);
+          this.el('direct').innerHTML = 'up';
+          this.d = -2;
+          this.start(-2);
+        }
+        else{
+          this.ray=setInterval(function() {
+            self.start(2);
+          }, realtime);
+        }
+        return 0;
+        break;
+      case 40:
+      case 2:
+      case 270: //down
+        if(stop != -2){
+          this.ray = setInterval(function() {
+            self.start(2);
+          }, realtime);
+          this.el('direct').innerHTML = 'down';
+          this.d = 2;
+          this.start(2);
+        }
+        else{
+          this.ray = setInterval(function() {
+            self.start(-2);
+          }, realtime);
+        }
+        return 0;
+        break;
+      case 37:
+      case 3:
+      case 271: //left
+        if(stop!=1){
+          this.ray = setInterval(function() {
+            self.start(-1);
+          }, realtime);
+          this.el('direct').innerHTML = 'left';
+          this.d = -1;
+          this.start(-1);
+        }
+        else{
+          this.ray = setInterval(function() {
+            self.start(1);
+          },realtime);
+        }
+        return 0;
+        break;
+      case 39:
+      case 4:
+      case 272: //right
+        if(stop !== -1){
+          this.ray = setInterval(function() {
+            self.start(1);
+          },realtime);
+          this.el('direct').innerHTML = 'right';
+          this.d = 1;
+          this.start(1);
+        }
+        else{
+          this.ray = setInterval(function() {
+            self.start(-1);
+          },realtime);
+        }
+        return 0;
+        break;
+      case 13: //enter
+        if(stop){
+          alert('点击继续游戏');
+          this.ray=setInterval(function(stop) {
+            self.start(stop);
+          }, realtime);
+        }
+        return 0;
+        break;
+    }
+  }
+
+  var snake = new Snake();
+  snake.init();
+  var keydown = function() {
+    snake.keyevent();
+  }
+  </script>
+</html>
